@@ -25,6 +25,34 @@ if (select stock_quantity from products where product_id = p_product_id) - p_qua
     set stock_quantity = stock_quantity - p_quantity
     where product_id = p_product_id;
     else raise notice 'та ти шось нахімічив тут';
-    END if;
+    end if;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION update_orders_total()
+RETURNS TRIGGER
+AS $$
+declare 
+    t_order_id int;
+BEGIN
+    if tg_op = 'DELETE' then
+    t_order_id = old.order_id;
+    else 
+    t_order_id = new.order_id;
+    end if;
+
+    update orders
+    set total_amount = calculate_order_total(t_order_id)
+    where order_id = t_order_id;
+
+    return null;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS recount_total_amount ON order_items;
+
+CREATE TRIGGER recount_total_amount
+AFTER UPDATE or DELETE or INSERT on order_items
+FOR EACH ROW
+EXECUTE FUNCTION
+update_orders_total();
