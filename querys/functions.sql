@@ -3,8 +3,7 @@ select coalesce(sum(quantity * price), 0)
 from order_items
 where order_id = p_order_id $$ Language SQL;
 CREATE OR REPLACE PROCEDURE create_order(
-        p_customer_id int,
-        p_order_id int
+        p_customer_id int
     ) LANGUAGE plpgsql AS $$ BEGIN
 INSERT INTO orders (customer_id, order_date, total_amount)
 values (p_customer_id, current_timestamp, 0);
@@ -56,3 +55,19 @@ AFTER UPDATE or DELETE or INSERT on order_items
 FOR EACH ROW
 EXECUTE FUNCTION
 update_orders_total();
+
+CREATE OR REPLACE FUNCTION log_order()
+RETURNS TRIGGER
+AS $$
+BEGIN
+    INSERT INTO order_log(order_id, customer_id, action, log_date)
+    values(new.order_id, new.customer_id, 'ORDER CREATED', current_timestamp);
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER logger
+AFTER INSERT on orders
+FOR EACH ROW
+EXECUTE FUNCTION
+log_order();
