@@ -66,6 +66,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS logger ON orders;
+
 CREATE TRIGGER logger
 AFTER INSERT on orders
 FOR EACH ROW
